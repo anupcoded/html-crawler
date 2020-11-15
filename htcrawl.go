@@ -11,22 +11,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-//Page represents a
-/* type Page struct {
-	Url           string
-	Version       string
-	Title         string
-	HeadingLevel  uint16
-	InternalLinks uint16
-	ExternalLinks uint16
-	InaccLinks    uint16
-	Login         bool
-} */
-
-/* type HttpError struct {
-	Errorinfo string
-} */
-
 func checkErr(err error) {
 	if err != nil {
 		fmt.Println(err)
@@ -34,102 +18,28 @@ func checkErr(err error) {
 	}
 }
 
-//Parse will take an HTML url and returns information
-/* func Parse(resp *http.Response, depth int) []Page {
-	pageData := html.NewTokenizer(resp.Body)
-	links := []Page{}
-
-	var start *html.Token
-	var text string
-
-	for{
-		_=pageData.Next()
-		token := page.Token()
-		if token.Type == html.ErrorToken {
-			break
-		}
-
-		if start != nil && token.Type == html.TextToken {
-			text = fmt.Sprintf("%s%s", text, token.Data)
-		}
-
-		if token.dataAtom == atom.A {
-			switch token.type {
-			case html.StartTagToken:
-				if len(token.Attr) > 0 {
-					start = &token
-				}
-			case html.EndTagToken:
-				if start == nil {
-					log.Warnf("Link end found without start:%s",text)
-					continue
-				}
-				link := NewLink(*start, text, depth)
-				if link.Valid(){
-					links = append(links, link)
-					log.Deugf("link found %v", link)
-				}
-
-				start = nil
-				text = ""
-			}
-		}
+func headingCount(heading []string) map[string]int {
+	level := make(map[string]int)
+	for _, num := range heading {
+		level[num] = level[num] + 1
 	}
-
-	log.Debug(links)
-	return links
+	return level
 }
-
-func NewLink(tag html.Token, text string, depth int) Link {
-	link := link
-} */
-
-/* func urlParser(Page p, url string) Page {
-	p.page_url = url
-	return p
-} */
-
-/* func get_info(url string) {
-	resp, _ := http.Get(url)
-	bytes, _ := ioutil.ReadAll(resp.Body)
-
-	//b := resp.Body
-	defer b.Close()
-
-	tokenizer := html.NewTokenizer(resp.Body)
-
-	for {
-		toktyp:= tokenizer.Next()
-		if toktyp == html.ErrorToken {
-			if tokenizer.Err() != io.EOF {
-				if tokenizer.Err() != io.EOF {
-        			WARN.Println(fmt.Sprintf(“HTML error found in %s due to “,
-                    currentUrl, tokenizer.Err()))
-				}
-				return
-			}
-		}
-		token := tokenizer.token()
-		switch  toktyp {
-
-		}
-
-	}
-
-	string_body := string(bytes)
-	fmt.Println(string_body)
-	resp.Body.Close()
-
-}  */
 
 func main() { //main function
 
 	baseURL := "https://www.w3.org/TR/xhtml1/"
-	heading := []string{"h1"}
+	var heading []string
+	var internal, external int
+	var form bool
+	headingPattern, _ := regexp.Compile(`h[0-9]`)
+	linkPattern, _ := regexp.Compile("http")
+
 	//skip https
 	config := &tls.Config{
 		InsecureSkipVerify: true,
 	}
+
 	transport := &http.Transport{
 		TLSClientConfig: config,
 	}
@@ -143,16 +53,16 @@ func main() { //main function
 	checkErr(err)
 
 	z := html.NewTokenizer(response.Body)
-
+loop:
 	for {
 		tt := z.Next()
-
+		t := z.Token()
+		//fmt.Println(internal)
 		switch {
 		case tt == html.ErrorToken:
-			return
+			break loop
+
 		case tt == html.DoctypeToken:
-			t := z.Token()
-			//fmt.Println(t.Data)
 			switch {
 			case t.Data == "html":
 				fmt.Println("HTML Version: HTML5")
@@ -171,16 +81,14 @@ func main() { //main function
 			}
 
 		case tt == html.StartTagToken:
-			t := z.Token()
-			//fmt.Println(t.Data)
 			isTitle := t.Data == "title"
 			if isTitle {
 				z.Next()
 				fmt.Println("Title:", string(z.Text()))
 			}
 
-			pattern, _ := regexp.Compile(`h[0-9]`)
-			isHeading := pattern.MatchString(t.Data)
+			//headingPattern, _ := regexp.Compile(`h[0-9]`)
+			isHeading := headingPattern.MatchString(t.Data)
 			if isHeading {
 				heading = append(heading, t.Data)
 				//z.Next()
@@ -192,9 +100,16 @@ func main() { //main function
 			isAnchor := t.Data == "a"
 			if isAnchor {
 
+				//linkPattern, _ := regexp.Compile("http")
 				for _, a := range t.Attr {
 					if a.Key == "href" {
-						fmt.Println("Found href:", a.Val)
+						isExternal := linkPattern.MatchString(a.Val)
+						if isExternal {
+							external++
+						} else {
+							internal++
+						}
+						//fmt.Println("Found href:", a.Val)
 						break
 					}
 				}
@@ -202,18 +117,20 @@ func main() { //main function
 
 			isForm := t.Data == "form"
 			if isForm {
-				fmt.Println("form found")
+				form = true
 			}
-
 		}
-
 	}
 
-	fmt.Println(heading)
+	for headingLevel, count := range headingCount(heading) {
+		fmt.Println(headingLevel, ":", count)
+	}
+	fmt.Println("Internal Links:", internal, " External Links:", external)
+	fmt.Println("Form Found: ", form)
+	//fmt.Println(heading)
 	//response.Body.Close()
 
 	/* a_page = get_url(a_page, "http://google.com")
 	http.HandleFunc("/", index_handler)//function based on the path "/"
 	http.ListenAndServe(":8000", nil)// (port,server which is nill) */
-
 }
