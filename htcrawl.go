@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -30,10 +31,8 @@ func main() { //main function
 
 	baseURL := "https://www.w3.org/TR/xhtml1/"
 	var heading []string
-	var internal, external int
+	var internal, external, inacessible int
 	var form bool
-	headingPattern, _ := regexp.Compile(`h[0-9]`)
-	linkPattern, _ := regexp.Compile("http")
 
 	//skip https
 	config := &tls.Config{
@@ -57,7 +56,7 @@ loop:
 	for {
 		tt := z.Next()
 		t := z.Token()
-		//fmt.Println(internal)
+
 		switch {
 		case tt == html.ErrorToken:
 			break loop
@@ -87,29 +86,32 @@ loop:
 				fmt.Println("Title:", string(z.Text()))
 			}
 
-			//headingPattern, _ := regexp.Compile(`h[0-9]`)
+			headingPattern, _ := regexp.Compile(`h[0-9]`)
 			isHeading := headingPattern.MatchString(t.Data)
 			if isHeading {
 				heading = append(heading, t.Data)
-				//z.Next()
-				//h1 := isHeading.FindAllStringIndex("A B C B A", -1)
-				//fmt.Println("Heading:", heading)
-				//return string(heading)
 			}
 
 			isAnchor := t.Data == "a"
 			if isAnchor {
 
-				//linkPattern, _ := regexp.Compile("http")
+				linkPattern, _ := regexp.Compile("http|https")
+				var link string
 				for _, a := range t.Attr {
 					if a.Key == "href" {
 						isExternal := linkPattern.MatchString(a.Val)
 						if isExternal {
 							external++
+							link = a.Val
 						} else {
 							internal++
+							link = fmt.Sprintf("%s%s", baseURL, a.Val)
 						}
-						//fmt.Println("Found href:", a.Val)
+						_, err := url.ParseRequestURI(link)
+						if err != nil {
+							inacessible++
+						}
+						//fmt.Println("Found href:", link)
 						break
 					}
 				}
@@ -126,6 +128,7 @@ loop:
 		fmt.Println(headingLevel, ":", count)
 	}
 	fmt.Println("Internal Links:", internal, " External Links:", external)
+	fmt.Println("Inaccesible Links:", inacessible)
 	fmt.Println("Form Found: ", form)
 	//fmt.Println(heading)
 	//response.Body.Close()
