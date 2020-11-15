@@ -153,9 +153,9 @@ func main() { //main function
 			t := z.Token()
 			fmt.Println(t.Data)
 			switch {
-			case strings.Contains(t.Data, "html"):
+			case t.Data == "html":
 				fmt.Println("HTML Version: HTML5")
-			case strings.Contains(t.Data, "HTML"):
+			case t.Data == "HTML":
 				fmt.Println("HTML Version: HTML5 and beyond")
 			case strings.Contains(t.Data, "HTML 4.01"):
 				fmt.Println("HTML Version: HTML 4.01")
