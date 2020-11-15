@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -124,7 +125,7 @@ func NewLink(tag html.Token, text string, depth int) Link {
 func main() { //main function
 
 	baseURL := "https://www.w3.org/TR/xhtml1/"
-
+	heading := []string{"h1"}
 	//skip https
 	config := &tls.Config{
 		InsecureSkipVerify: true,
@@ -151,7 +152,7 @@ func main() { //main function
 			return
 		case tt == html.DoctypeToken:
 			t := z.Token()
-			fmt.Println(t.Data)
+			//fmt.Println(t.Data)
 			switch {
 			case t.Data == "html":
 				fmt.Println("HTML Version: HTML5")
@@ -171,11 +172,21 @@ func main() { //main function
 
 		case tt == html.StartTagToken:
 			t := z.Token()
-
+			//fmt.Println(t.Data)
 			isTitle := t.Data == "title"
 			if isTitle {
 				z.Next()
 				fmt.Println("Title:", string(z.Text()))
+			}
+
+			pattern, _ := regexp.Compile(`h[0-9]`)
+			isHeading := pattern.MatchString(t.Data)
+			if isHeading {
+				heading = append(heading, t.Data)
+				//z.Next()
+				//h1 := isHeading.FindAllStringIndex("A B C B A", -1)
+				//fmt.Println("Heading:", heading)
+				//return string(heading)
 			}
 
 			isAnchor := t.Data == "a"
@@ -198,6 +209,7 @@ func main() { //main function
 
 	}
 
+	fmt.Println(heading)
 	//response.Body.Close()
 
 	/* a_page = get_url(a_page, "http://google.com")
