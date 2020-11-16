@@ -21,4 +21,4 @@ These instructions will get you to run the application on your local machine for
 
 2. Allow access for the windows defender firewall prompt.
 
-3. Navigate to the webpage ["localhost:8000/"](http://localhost:8000/) and enter the url for the webpage for which the information is to be fetched.
+3. Navigate to the webpage ["http;//localhost:8000/"](http://localhost:8000/) and enter the url for the webpage for which the information is to be fetched.
